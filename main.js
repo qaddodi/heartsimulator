@@ -111,66 +111,59 @@ class Heart{
     constructor(r,c,size){
         this.pos = new Vector(0,0);
         this.cellSize = size;
-        this.col = c;
         this.row = r;
+        this.col = c;
+        this.totalCells = this.col*this.row;
         this.array = [];
-        this.septum = Math.floor(this.col/7);
-        this.avNodeJ = Math.floor(this.col/3);
-        this.vSeptumThickness = 2;
+        this.septum = Math.floor(this.row*0.2);
+        this.avNodeJ = Math.floor(this.col*0.3);
+        this.vSeptumThickness = 1;
         this.avnode;
         this.sanode;
     }
 
-    getIndex(i,j){
-        var index = this.row*i+j;
-        return index;
-    }
-
-    getCol(index){
-        return index % this.row;
-    }
-    getRow(index){
-        return (index - this.getCol(index))/this.col;
-    }
     createCells(){
-        for(var i=0; i<this.col;i++){
-            for(var j=0; j<this.row;j++){
-                var index = this.row*i+j;
-                this.array[index] = new Cell(this.cellSize);
+        for(var i =0; i<this.row;i++){
+            this.array[i] = [];
+            for(var j =0; j<this.col; j++){
+                this.array[i][j] = new Cell(this.cellSize);
             }
         }
     }
 
     createAVnode(){
-        var i = this.septum;
-        var j = this.avNodeJ;
-        var index = this.col*i+j;
-        this.array[index].dead = false;
-        this.array[index].avNode = true;
-        this.avnode = this.array[index];
+        for(var i=0; i<this.array.length;i++){
+            for(var j=0; j<this.array[i].length;j++){
+                if(i==this.septum && j==this.avNodeJ){
+                    this.array[i][j].dead = false;
+                    this.array[i][j].avNode = true;
+                    this.avnode = this.array[i][j];
+                }
+            }
+        }
     }
 
     createSAnode(){
-        this.sanode = this.array[this.getIndex(2,2)];
-        this.array[this.getIndex(2,2)].saNode=true;
+        this.sanode = this.array[2][2];
+        this.array[2][2].saNode=true;
     }
 
     createSeptum(){
-        for(var i=0; i<this.col;i++){
-            for(var j=0; j<this.row;j++){
-                var cell = this.array[this.getIndex(i,j)];
+        for(var i=0; i<this.array.length;i++){
+            for(var j=0; j<this.array[i].length;j++){
+                var cell = this.array[i][j];
                 if(i==this.septum){
-                    cell.dead= true;
+                    cell.dead = true;
                 }
             }
         }
     }
 
     createVentricles(){
-        for(var i=0; i<this.col;i++){
-            for(var j=0; j<this.row;j++){
-                var cell = this.array[this.getIndex(i,j)];
-                if(i>this.septum && i<this.row-5){
+        for(var i=0; i<this.array.length;i++){
+            for(var j=0; j<this.array[i].length;j++){
+                var cell = this.array[i][j];
+                if(i>this.septum && i<Math.floor(this.row*0.9)){
                     if(j==this.avNodeJ+this.vSeptumThickness||j==this.avNodeJ-this.vSeptumThickness){
                         cell.dead= true;
                     }
@@ -181,22 +174,21 @@ class Heart{
 
     neighbors(i,j){
         var neighbors = [];
-        var top = this.row*(i-1)+j;
-        var bottom = this.row*(i+1)+j;
-        var left = this.row*(i)+j-1;
-        var right = this.row*(i)+j+1;
-
-        if(left>=0 && j-1>=0){
-            neighbors.push(this.array[left]);
+        if(i>0){
+            var top = this.array[i-1][j];
+            neighbors.push(top);
         }
-        if(right<this.array.length && j+1<this.row){
-            neighbors.push(this.array[right]);
+        if(i<this.row-1){
+            var bottom = this.array[i+1][j];
+            neighbors.push(bottom);
         }
-        if(top>=0 && i-1 >= 0){
-            neighbors.push(this.array[top]);
+        if(j>0){
+            var left = this.array[i][j-1];
+            neighbors.push(left);
         }
-        if(bottom<this.array.length && i+1 <this.col){
-            neighbors.push(this.array[bottom]);
+        if(j<this.col-1){
+            var right = this.array[i][j+1];
+            neighbors.push(right);
         }
         return neighbors;
 
@@ -205,21 +197,19 @@ class Heart{
     heartblock(){
         var i = this.septum-1;
         var j = this.avNodeJ;
-        var index = this.col*i+j;
-        var cell = this.array[index];
+        var cell = this.array[i][j];
         if(cell.dead){cell.dead=false}else{cell.dead=true};
     }
 
     update(){
-        for(var i=0; i<this.col;i++){
-            for(var j=0; j<this.row;j++){
-                var index = this.row*i+j;
-                var cell = this.array[index];
+        for(var i=0; i<this.array.length;i++){
+            for(var j=0; j<this.array[i].length;j++){
+                var cell = this.array[i][j];
                 if (cell.state == 1){
                     if(this.neighbors(i,j).length>0){
                         var neighbors = this.neighbors(i,j);
-                            for(var n = 0; n<neighbors.length;n++){
-                                neighbors[n].stimulate(1000);
+                            for(var x = 0; x<neighbors.length;x++){
+                                neighbors[x].stimulate(1000);
                             }
                         }
                     }
@@ -229,12 +219,11 @@ class Heart{
     }
 
     render(context){
-        for(var i=0; i<this.col;i++){
-            for(var j=0; j<this.row;j++){
-                var index = this.row*i+j;
-                var cell = this.array[index];
-                cell.pos.x = j*cell.size+this.pos.x;
-                cell.pos.y = i*cell.size+this.pos.y;
+        for(var i=0; i<this.array.length;i++){
+            for(var j=0; j<this.array[i].length;j++){
+                var cell = this.array[i][j];
+                cell.pos.x = (j)*cell.size+this.pos.x;
+                cell.pos.y = (i)*cell.size+this.pos.y;
                 context.fillStyle = cell.color;
                 context.fillRect(cell.pos.x,cell.pos.y,cell.size-cell.border,cell.size-cell.border);
             }
@@ -272,12 +261,12 @@ class Vector{
 class EKG{
     constructor(grid){
         this.grid = grid;
-        var y = this.grid.array.length/this.grid.row*this.grid.array[0].size;
+        var y = this.grid.row*this.grid.array[0][0].size;
         this.bgPos = new Vector(0,y);
         this.pos = new Vector(0,0);
         this.indSize = 1.5;
         this.time = 0;
-        this.width = this.grid.array.length/this.grid.col*this.grid.array[0].size;
+        this.width = this.grid.col*this.grid.array[0][0].size;
         this.height = 100;
         this.size = new Vector(this.width,this.height);
         this.posArray = [];
@@ -291,15 +280,17 @@ class EKG{
 
     read(grid,col){
         this.reading = Math.random()*this.noise;
-        for(var n=0; n<grid.array.length; n++){
-            var cell = grid.array[n];
-            var readStrength = grid.cellSize*2;
-            if(true){
-                if(cell.state==1 && cell.ACTIVE_TIME-cell.activeTime<50){
-                    this.reading-=readStrength;
-                }
-                if(cell.refractory && cell.REFRACTORY_TIME-cell.refractoryTime>cell.REFRACTORY_TIME*0.9){
-                    this.reading-=readStrength/2;
+        for(var i=0; i<grid.array.length;i++){
+            for(var j=0; j<grid.array[i].length;j++){
+                var cell = grid.array[i][j];
+                var readStrength = grid.cellSize*3;
+                if(true){
+                    if(cell.state==1 && cell.ACTIVE_TIME-cell.activeTime<50){
+                        this.reading-=readStrength;
+                    }
+                    if(cell.refractory && cell.REFRACTORY_TIME-cell.refractoryTime>cell.REFRACTORY_TIME*0.9){
+                        this.reading-=readStrength/2;
+                    }
                 }
             }
         }
@@ -339,7 +330,7 @@ class EKG{
     }
 }
 
-var heart = new Heart(25,25,20);
+var heart = new Heart(40,30,10);
 heart.createCells();
 heart.createSeptum();
 heart.createVentricles();
@@ -355,13 +346,13 @@ window.addEventListener("mousedown",mouseDown);
 function mouseDown(e){
     var mouseX = e.clientX;
     var mouseY = e.clientY;
-    for(var n=0; n<heart.array.length;n++){
-        var cell = heart.array[n];
-        var diffX = mouseX-cell.pos.x;
-        var diffY = mouseX-cell.pos.y;
-        if(mouseX>cell.pos.x && mouseY > cell.pos.y && mouseX < cell.pos.x+cell.size && mouseY < cell.pos.y+cell.size){
-            cell.stimulate(1000);
-            console.log(n,heart.getCol(n),heart.getRow(n));
+    for(var i=0; i<heart.array.length;i++){
+        for(var j=0; j<heart.array[i].length;j++){
+            var cell = heart.array[i][j];
+            if(mouseX>cell.pos.x && mouseY > cell.pos.y && mouseX < cell.pos.x+cell.size && mouseY < cell.pos.y+cell.size){
+                cell.stimulate(1000);
+                console.log(i,j);
+            }
         }
     }
 }
